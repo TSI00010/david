@@ -158,55 +158,136 @@ function parseCSV(csvText) {
     
     for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim()) {
-            // 탭으로 구분된 경우와 쉼표로 구분된 경우 모두 처리
+            // 다양한 구분자 처리
             let values;
+            
+            // 탭으로 구분된 경우
             if (lines[i].includes('\t')) {
                 values = lines[i].split('\t');
-            } else {
+            }
+            // 세미콜론으로 구분된 경우
+            else if (lines[i].includes(';')) {
+                values = lines[i].split(';');
+            }
+            // 쉼표로 구분된 경우
+            else {
                 values = lines[i].split(',');
             }
-            data.push(values);
+            
+            // 각 값에서 깨진 문자 정리 및 정규화
+            values = values.map(value => {
+                let cleanValue = value
+                    .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // 깨진 문자 제거
+                    .replace(/[""]/g, '"') // 따옴표 정규화
+                    .replace(/['']/g, "'") // 작은따옴표 정규화
+                    .trim();
+                
+                // 따옴표로 감싸진 값 처리
+                if (cleanValue.startsWith('"') && cleanValue.endsWith('"')) {
+                    cleanValue = cleanValue.slice(1, -1);
+                }
+                
+                return cleanValue;
+            });
+            
+            // 빈 값이 아닌 경우만 추가
+            if (values.some(v => v.length > 0)) {
+                data.push(values);
+            }
         }
     }
     
+    console.log(`파싱된 데이터: ${data.length}개 행`);
     return data;
 }
 
 // 데이터 로드 함수
 async function loadData(dataType) {
     try {
-        let csvFile;
+        // 다양한 파일명 패턴으로 시도
+        const filePatterns = {
+            'women-safety': [
+                'women-safety.csv',
+                '서울특별시_은평구_여성안심지킴이집_20250318.csv',
+                '여성안심지킴이집.csv',
+                'women.csv'
+            ],
+            'child-meal': [
+                'child-meal.csv',
+                '서울특별시_은평구_아동복지급식정보_20241209.csv',
+                '아동복지급식.csv',
+                'child.csv'
+            ],
+            'performance': [
+                'performance.csv',
+                '서울특별시_은평구_공연행사정보_20250626.csv',
+                '공연행사정보.csv',
+                'event.csv'
+            ],
+            'recycling': [
+                'recycling.csv',
+                '서울특별시_은평구_재활용센터_20240101.csv',
+                '재활용센터.csv',
+                'recycle.csv'
+            ],
+            'fire-water': [
+                'fire-water.csv',
+                '서울특별시_은평구_소방용수시설_20250408.csv',
+                '소방용수시설.csv',
+                'fire.csv'
+            ],
+            'free-meal': [
+                'free-meal.csv',
+                '서울특별시_은평구_무료급식소_20250203.csv',
+                '무료급식소.csv',
+                'meal.csv'
+            ],
+            'snow-box': [
+                'snow-box.csv',
+                '서울특별시_은평구_제설함_20250326.csv',
+                '제설함.csv',
+                'snow.csv'
+            ],
+            'dog-poop': [
+                'dog-poop.csv',
+                '반려견 배변봉투함 위치.csv',
+                '반려견 배변봉투함 위치(은평구).csv',
+                'dog.csv',
+                'ġ.csv' // 깨진 파일명도 포함
+            ]
+        };
         
-        switch (dataType) {
-            case 'women-safety':
-                csvFile = '서울특별시_은평구_여성안심지킴이집_20250318.csv';
-                break;
-            case 'child-meal':
-                csvFile = '서울특별시_은평구_아동복지급식정보_20241209.csv';
-                break;
-            case 'performance':
-                csvFile = '서울특별시_은평구_공연행사정보_20250626.csv';
-                break;
-            case 'recycling':
-                csvFile = '서울특별시_은평구_재활용센터_20240101.csv';
-                break;
-            case 'fire-water':
-                csvFile = '서울특별시_은평구_소방용수시설_20250408.csv';
-                break;
-            case 'free-meal':
-                csvFile = '서울특별시_은평구_무료급식소_20250203.csv';
-                break;
-            case 'snow-box':
-                csvFile = '서울특별시_은평구_제설함_20250626.csv';
-                break;
-            case 'dog-poop':
-                csvFile = '반려견 배변봉투함 위치.csv';
-                break;
+        const patterns = filePatterns[dataType] || [];
+        let csvFile = null;
+        
+        // 여러 파일명 패턴을 시도
+        for (const pattern of patterns) {
+            try {
+                const testResponse = await fetch(pattern);
+                if (testResponse.ok) {
+                    csvFile = pattern;
+                    console.log(`파일을 찾았습니다: ${pattern}`);
+                    break;
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        
+        if (!csvFile) {
+            console.error('CSV 파일을 찾을 수 없습니다:', dataType);
+            return [];
         }
         
         const response = await fetch(csvFile);
         const csvText = await response.text();
-        const data = parseCSV(csvText);
+        
+        // 인코딩 문제 해결을 위한 텍스트 정리
+        const cleanText = csvText
+            .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // 깨진 문자 제거
+            .replace(/[^\x00-\x7F\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/g, ''); // 한글, 영문만 유지
+        
+        const data = parseCSV(cleanText);
         
         return data;
     } catch (error) {
@@ -248,10 +329,15 @@ function displayMarkers(data, dataType) {
             lat = parseFloat(row[3]);
             lng = parseFloat(row[4]);
         } else if (dataType === 'dog-poop') {
-            // 인코딩 문제로 첫 줄이 깨질 수 있으니, 컬럼 순서: 위치명, 주소
-            lat = parseFloat(row[2]);
-            lng = parseFloat(row[3]);
-            // 만약 좌표가 없으면 주소로 변환 필요(여기선 좌표만 사용)
+            // 다양한 컬럼 위치에서 좌표 찾기
+            lat = parseFloat(row[2]) || parseFloat(row[3]) || parseFloat(row[4]);
+            lng = parseFloat(row[3]) || parseFloat(row[4]) || parseFloat(row[5]);
+            
+            // 좌표가 없으면 주소에서 추출 시도
+            if (!lat || !lng) {
+                const address = row[1] || row[2] || '';
+                console.log('좌표가 없습니다. 주소:', address);
+            }
         }
         
         if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
