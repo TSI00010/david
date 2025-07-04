@@ -15,40 +15,93 @@
             <p>은평구 공공데이터포털의 다양한 시설 정보를 지도에서 확인하세요</p>
         </header>
         
-        <div class="controls">
-            <div class="data-selector">
-                <label for="dataType">데이터 선택:</label>
-                <select id="dataType">
-                    <option value="women-safety">여성안심지킴이집</option>
-                    <option value="child-meal">아동복지급식</option>
-                    <option value="performance">공연행사정보</option>
-                    <option value="recycling">재활용센터</option>
-                    <option value="fire-water">소방용수시설</option>
-                    <option value="free-meal">무료급식소</option>
-                    <option value="snow-box">제설함</option>
-                    <option value="dog-poop">반려견 배변봉투함</option>
-                </select>
-            </div>
-            
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="지역명 검색...">
-                <button id="searchBtn">검색</button>
-            </div>
-        </div>
-        
-        <div class="map-container">
-            <div id="map"></div>
-            <div class="map-info">
-                <div class="info-panel">
-                    <h3>📊 데이터 정보</h3>
-                    <div id="dataInfo">
-                        <p>지도에서 마커를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+        <div class="main-content">
+            <!-- 사이드 배너 -->
+            <div class="side-banner">
+                <div class="banner-section">
+                    <h3>📊 공공데이터 포털</h3>
+                    <div class="portal-links">
+                        <a href="https://data.seoul.go.kr/" target="_blank" class="portal-link seoul">
+                            <div class="portal-icon">🏛️</div>
+                            <div class="portal-info">
+                                <strong>서울 열린데이터광장</strong>
+                                <span>서울시 공공데이터</span>
+                            </div>
+                        </a>
+                        <a href="https://www.data.go.kr/" target="_blank" class="portal-link national">
+                            <div class="portal-icon">🇰🇷</div>
+                            <div class="portal-info">
+                                <strong>공공데이터포털</strong>
+                                <span>국가 공공데이터</span>
+                            </div>
+                        </a>
+                        <a href="https://www.ep.go.kr/www/selectDataPortalList.do?key=501" target="_blank" class="portal-link eunpyeong">
+                            <div class="portal-icon">🏘️</div>
+                            <div class="portal-info">
+                                <strong>은평구 데이터포털</strong>
+                                <span>은평구 공공데이터</span>
+                            </div>
+                        </a>
                     </div>
                 </div>
-                <div class="stats-panel">
-                    <h3>📈 통계</h3>
-                    <div id="stats">
-                        <p>총 <span id="totalCount">0</span>개의 시설</p>
+                
+                <div class="banner-section">
+                    <h3>📈 실시간 통계</h3>
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalCount">0</span>
+                            <span class="stat-label">총 시설</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="activeData">여성안심지킴이집</span>
+                            <span class="stat-label">현재 데이터</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 메인 콘텐츠 -->
+            <div class="content-area">
+                <div class="controls">
+                    <div class="data-selector">
+                        <label for="dataType">데이터 선택:</label>
+                        <select id="dataType">
+                            <option value="women-safety">여성안심지킴이집</option>
+                            <option value="child-meal">아동복지급식</option>
+                            <option value="performance">공연행사정보</option>
+                            <option value="recycling">재활용센터</option>
+                            <option value="fire-water">소방용수시설</option>
+                            <option value="free-meal">무료급식소</option>
+                            <option value="snow-box">제설함</option>
+                            <option value="dog-poop">반려견 배변봉투함</option>
+                        </select>
+                    </div>
+                    
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="지역명 검색...">
+                        <button id="searchBtn">검색</button>
+                    </div>
+                    
+                    <div class="upload-box">
+                        <input type="file" id="csvUpload" accept=".csv" multiple style="display: none;">
+                        <button id="uploadBtn">CSV 파일 업로드</button>
+                        <span id="uploadStatus"></span>
+                    </div>
+                    
+                    <div class="map-controls">
+                        <button id="resetMapBtn">🏠 은평구로 돌아가기</button>
+                    </div>
+                </div>
+                
+                <div class="map-container">
+                    <div id="map"></div>
+                    <div class="map-info">
+                        <div class="info-panel">
+                            <h3>📊 데이터 정보</h3>
+                            <div id="dataInfo">
+                                <p>지도에서 마커를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

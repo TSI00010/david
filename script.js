@@ -381,8 +381,11 @@ function displayMarkers(data, dataType) {
     // 통계 업데이트
     document.getElementById('totalCount').textContent = validData;
     
-    // 데이터 정보 업데이트
+    // 현재 데이터 타입 업데이트
     const config = dataConfig[dataType];
+    document.getElementById('activeData').textContent = config.name;
+    
+    // 데이터 정보 업데이트
     document.getElementById('dataInfo').innerHTML = `
         <p><strong>${config.name}</strong></p>
         <p>총 ${validData}개의 시설이 지도에 표시됩니다.</p>
@@ -468,9 +471,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         map.setView(EUNPYEONG_CENTER, 13);
     });
     
-    // 초기 데이터 로드 (여성안심지킴이집)
+    // 페이지 로드 시 자동으로 첫 번째 데이터 로드 (여성안심지킴이집)
+    console.log('페이지 로드 - 첫 번째 데이터 자동 로드 시작');
     currentData = await loadData('women-safety');
     displayMarkers(currentData, 'women-safety');
+    console.log('첫 번째 데이터 로드 완료');
 });
 
 // 지도 컨트롤 추가
