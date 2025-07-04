@@ -3,8 +3,12 @@ let map;
 let markers = [];
 let currentData = [];
 
-// 은평구 중심 좌표
+// 은평구 중심 좌표 (더 정확한 위치)
 const EUNPYEONG_CENTER = [37.6026, 126.9291];
+const EUNPYEONG_BOUNDS = [
+    [37.5800, 126.8900], // 남서쪽 경계
+    [37.6500, 126.9700]  // 북동쪽 경계
+];
 
 // 데이터 타입별 설정
 const dataConfig = {
@@ -59,9 +63,14 @@ function initMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
     
-    // 한국어 지도 타일 (카카오맵 스타일)
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+    // 은평구 경계 설정 (지도 이동 제한)
+    map.setMaxBounds(EUNPYEONG_BOUNDS);
+    
+    // 은평구 경계 표시 (선택사항)
+    L.rectangle(EUNPYEONG_BOUNDS, {
+        color: "#ff7800",
+        weight: 2,
+        fillOpacity: 0.1
     }).addTo(map);
 }
 
@@ -201,78 +210,127 @@ function parseCSV(csvText) {
     return data;
 }
 
+// CSV 파일 자동 감지 함수
+async function detectCSVFiles() {
+    const commonCSVNames = [
+        '*.csv',
+        'data.csv',
+        'locations.csv',
+        'points.csv',
+        'facilities.csv',
+        'women-safety.csv',
+        'child-meal.csv',
+        'performance.csv',
+        'recycling.csv',
+        'fire-water.csv',
+        'free-meal.csv',
+        'snow-box.csv',
+        'dog-poop.csv',
+        '반려견 배변봉투함 위치.csv',
+        '서울특별시_은평구_여성안심지킴이집_20250318.csv',
+        '서울특별시_은평구_아동복지급식정보_20241209.csv',
+        '서울특별시_은평구_공연행사정보_20250626.csv',
+        '서울특별시_은평구_재활용센터_20240101.csv',
+        '서울특별시_은평구_소방용수시설_20250408.csv',
+        '서울특별시_은평구_무료급식소_20250203.csv',
+        '서울특별시_은평구_제설함_20250326.csv'
+    ];
+    
+    const foundFiles = [];
+    
+    for (const fileName of commonCSVNames) {
+        try {
+            const response = await fetch(fileName);
+            if (response.ok) {
+                foundFiles.push(fileName);
+                console.log(`CSV 파일 발견: ${fileName}`);
+            }
+        } catch (e) {
+            // 파일이 없으면 무시
+        }
+    }
+    
+    return foundFiles;
+}
+
+// 데이터 타입에 맞는 CSV 파일 찾기
+async function findMatchingCSVFile(dataType, csvFiles) {
+    const dataTypeKeywords = {
+        'women-safety': ['여성', '안심', 'women', 'safety'],
+        'child-meal': ['아동', '급식', 'child', 'meal'],
+        'performance': ['공연', '행사', 'performance', 'event'],
+        'recycling': ['재활용', 'recycling', 'recycle'],
+        'fire-water': ['소방', '용수', 'fire', 'water'],
+        'free-meal': ['무료', '급식', 'free', 'meal'],
+        'snow-box': ['제설', 'snow', 'box'],
+        'dog-poop': ['반려견', '배변', 'dog', 'poop', 'ġ']
+    };
+    
+    const keywords = dataTypeKeywords[dataType] || [];
+    
+    // 키워드 기반 매칭
+    for (const file of csvFiles) {
+        const fileName = file.toLowerCase();
+        for (const keyword of keywords) {
+            if (fileName.includes(keyword.toLowerCase())) {
+                console.log(`키워드 매칭: ${keyword} -> ${file}`);
+                return file;
+            }
+        }
+    }
+    
+    // 파일명 기반 매칭
+    const exactMatches = {
+        'women-safety': 'women-safety.csv',
+        'child-meal': 'child-meal.csv',
+        'performance': 'performance.csv',
+        'recycling': 'recycling.csv',
+        'fire-water': 'fire-water.csv',
+        'free-meal': 'free-meal.csv',
+        'snow-box': 'snow-box.csv',
+        'dog-poop': 'dog-poop.csv'
+    };
+    
+    const exactMatch = exactMatches[dataType];
+    if (exactMatch && csvFiles.includes(exactMatch)) {
+        return exactMatch;
+    }
+    
+    // 첫 번째 CSV 파일 반환 (fallback)
+    return csvFiles.length > 0 ? csvFiles[0] : null;
+}
+
+// 좌표 자동 감지 함수
+function detectCoordinates(row) {
+    let lat = null, lng = null;
+    
+    // 모든 컬럼에서 좌표 찾기
+    for (let i = 0; i < row.length; i++) {
+        const value = parseFloat(row[i]);
+        if (!isNaN(value)) {
+            // 위도 범위: 33-39 (한국)
+            if (value >= 33 && value <= 39) {
+                lat = value;
+            }
+            // 경도 범위: 124-132 (한국)
+            else if (value >= 124 && value <= 132) {
+                lng = value;
+            }
+        }
+    }
+    
+    return { lat, lng };
+}
+
 // 데이터 로드 함수
 async function loadData(dataType) {
     try {
-        // 다양한 파일명 패턴으로 시도
-        const filePatterns = {
-            'women-safety': [
-                'women-safety.csv',
-                '서울특별시_은평구_여성안심지킴이집_20250318.csv',
-                '여성안심지킴이집.csv',
-                'women.csv'
-            ],
-            'child-meal': [
-                'child-meal.csv',
-                '서울특별시_은평구_아동복지급식정보_20241209.csv',
-                '아동복지급식.csv',
-                'child.csv'
-            ],
-            'performance': [
-                'performance.csv',
-                '서울특별시_은평구_공연행사정보_20250626.csv',
-                '공연행사정보.csv',
-                'event.csv'
-            ],
-            'recycling': [
-                'recycling.csv',
-                '서울특별시_은평구_재활용센터_20240101.csv',
-                '재활용센터.csv',
-                'recycle.csv'
-            ],
-            'fire-water': [
-                'fire-water.csv',
-                '서울특별시_은평구_소방용수시설_20250408.csv',
-                '소방용수시설.csv',
-                'fire.csv'
-            ],
-            'free-meal': [
-                'free-meal.csv',
-                '서울특별시_은평구_무료급식소_20250203.csv',
-                '무료급식소.csv',
-                'meal.csv'
-            ],
-            'snow-box': [
-                'snow-box.csv',
-                '서울특별시_은평구_제설함_20250326.csv',
-                '제설함.csv',
-                'snow.csv'
-            ],
-            'dog-poop': [
-                'dog-poop.csv',
-                '반려견 배변봉투함 위치.csv',
-                '반려견 배변봉투함 위치(은평구).csv',
-                'dog.csv',
-                'ġ.csv' // 깨진 파일명도 포함
-            ]
-        };
+        // 자동 CSV 파일 감지 및 로드
+        const csvFiles = await detectCSVFiles();
+        console.log('감지된 CSV 파일들:', csvFiles);
         
-        const patterns = filePatterns[dataType] || [];
-        let csvFile = null;
-        
-        // 여러 파일명 패턴을 시도
-        for (const pattern of patterns) {
-            try {
-                const testResponse = await fetch(pattern);
-                if (testResponse.ok) {
-                    csvFile = pattern;
-                    console.log(`파일을 찾았습니다: ${pattern}`);
-                    break;
-                }
-            } catch (e) {
-                continue;
-            }
-        }
+        // 선택된 데이터 타입에 맞는 파일 찾기
+        let csvFile = await findMatchingCSVFile(dataType, csvFiles);
         
         if (!csvFile) {
             console.error('CSV 파일을 찾을 수 없습니다:', dataType);
@@ -305,45 +363,18 @@ function displayMarkers(data, dataType) {
     let validData = 0;
     
     data.forEach(row => {
-        let lat, lng;
-        
-        if (dataType === 'women-safety') {
-            lat = parseFloat(row[7]);
-            lng = parseFloat(row[8]);
-        } else if (dataType === 'child-meal') {
-            lat = parseFloat(row[8]);
-            lng = parseFloat(row[9]);
-        } else if (dataType === 'performance') {
-            lat = parseFloat(row[13]);
-            lng = parseFloat(row[14]);
-        } else if (dataType === 'recycling') {
-            // 재활용센터는 좌표가 없으므로 주소로 검색
-            return;
-        } else if (dataType === 'fire-water') {
-            lat = parseFloat(row[5]);
-            lng = parseFloat(row[6]);
-        } else if (dataType === 'free-meal') {
-            lat = parseFloat(row[11]);
-            lng = parseFloat(row[12]);
-        } else if (dataType === 'snow-box') {
-            lat = parseFloat(row[3]);
-            lng = parseFloat(row[4]);
-        } else if (dataType === 'dog-poop') {
-            // 다양한 컬럼 위치에서 좌표 찾기
-            lat = parseFloat(row[2]) || parseFloat(row[3]) || parseFloat(row[4]);
-            lng = parseFloat(row[3]) || parseFloat(row[4]) || parseFloat(row[5]);
-            
-            // 좌표가 없으면 주소에서 추출 시도
-            if (!lat || !lng) {
-                const address = row[1] || row[2] || '';
-                console.log('좌표가 없습니다. 주소:', address);
-            }
-        }
+        // 자동 좌표 감지
+        const coords = detectCoordinates(row);
+        const { lat, lng } = coords;
         
         if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
             const marker = createMarker(lat, lng, row, dataType);
             markers.push(marker);
             validData++;
+            console.log(`마커 추가: ${lat}, ${lng}`);
+        } else {
+            // 좌표가 없는 경우 로그 출력
+            console.log('좌표를 찾을 수 없습니다:', row);
         }
     });
     
@@ -358,10 +389,24 @@ function displayMarkers(data, dataType) {
         <p>마커를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
     `;
     
-    // 모든 마커가 보이도록 지도 범위 조정
+    // 모든 마커가 보이도록 지도 범위 조정 (은평구 내에서)
     if (markers.length > 0) {
         const group = new L.featureGroup(markers);
-        map.fitBounds(group.getBounds().pad(0.1));
+        const bounds = group.getBounds();
+        
+        // 은평구 경계 내에서만 조정
+        const paddedBounds = bounds.pad(0.1);
+        const limitedBounds = [
+            [Math.max(paddedBounds.getSouth(), EUNPYEONG_BOUNDS[0][0]),
+             Math.max(paddedBounds.getWest(), EUNPYEONG_BOUNDS[0][1])],
+            [Math.min(paddedBounds.getNorth(), EUNPYEONG_BOUNDS[1][0]),
+             Math.min(paddedBounds.getEast(), EUNPYEONG_BOUNDS[1][1])]
+        ];
+        
+        map.fitBounds(limitedBounds);
+    } else {
+        // 마커가 없으면 은평구 중심으로 이동
+        map.setView(EUNPYEONG_CENTER, 13);
     }
 }
 
@@ -407,6 +452,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
+    // CSV 파일 업로드 이벤트
+    document.getElementById('uploadBtn').addEventListener('click', () => {
+        document.getElementById('csvUpload').click();
+    });
+    
+    document.getElementById('csvUpload').addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleCSVUpload(e.target.files);
+        }
+    });
+    
+    // 은평구로 돌아가기 버튼
+    document.getElementById('resetMapBtn').addEventListener('click', () => {
+        map.setView(EUNPYEONG_CENTER, 13);
+    });
+    
     // 초기 데이터 로드 (여성안심지킴이집)
     currentData = await loadData('women-safety');
     displayMarkers(currentData, 'women-safety');
@@ -426,4 +487,40 @@ function addMapControls() {
 }
 
 // 지도 로드 완료 후 컨트롤 추가
-setTimeout(addMapControls, 1000); 
+setTimeout(addMapControls, 1000);
+
+// CSV 파일 업로드 처리
+function handleCSVUpload(files) {
+    const uploadStatus = document.getElementById('uploadStatus');
+    uploadStatus.textContent = `업로드 중... ${files.length}개 파일`;
+    
+    Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csvText = e.target.result;
+            const data = parseCSV(csvText);
+            
+            // 파일명에서 데이터 타입 추측
+            const fileName = file.name.toLowerCase();
+            let dataType = 'custom';
+            
+            if (fileName.includes('반려견') || fileName.includes('dog')) dataType = 'dog-poop';
+            else if (fileName.includes('여성') || fileName.includes('women')) dataType = 'women-safety';
+            else if (fileName.includes('아동') || fileName.includes('child')) dataType = 'child-meal';
+            else if (fileName.includes('공연') || fileName.includes('performance')) dataType = 'performance';
+            else if (fileName.includes('재활용') || fileName.includes('recycling')) dataType = 'recycling';
+            else if (fileName.includes('소방') || fileName.includes('fire')) dataType = 'fire-water';
+            else if (fileName.includes('무료') || fileName.includes('free')) dataType = 'free-meal';
+            else if (fileName.includes('제설') || fileName.includes('snow')) dataType = 'snow-box';
+            
+            // 데이터 타입 선택
+            document.getElementById('dataType').value = dataType;
+            
+            // 마커 표시
+            displayMarkers(data, dataType);
+            
+            uploadStatus.textContent = `업로드 완료: ${file.name}`;
+        };
+        reader.readAsText(file, 'UTF-8');
+    });
+} 
