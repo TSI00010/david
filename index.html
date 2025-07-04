@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>은평구 공공데이터 지도</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏙️ 은평구 공공데이터 지도</h1>
+            <p>은평구 공공데이터포털의 다양한 시설 정보를 지도에서 확인하세요</p>
+        </header>
+        
+        <div class="controls">
+            <div class="data-selector">
+                <label for="dataType">데이터 선택:</label>
+                <select id="dataType">
+                    <option value="women-safety">여성안심지킴이집</option>
+                    <option value="child-meal">아동복지급식</option>
+                    <option value="performance">공연행사정보</option>
+                    <option value="recycling">재활용센터</option>
+                    <option value="fire-water">소방용수시설</option>
+                    <option value="free-meal">무료급식소</option>
+                    <option value="snow-box">제설함</option>
+                    <option value="dog-poop">반려견 배변봉투함</option>
+                </select>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="지역명 검색...">
+                <button id="searchBtn">검색</button>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-info">
+                <div class="info-panel">
+                    <h3>📊 데이터 정보</h3>
+                    <div id="dataInfo">
+                        <p>지도에서 마커를 클릭하면 상세 정보를 확인할 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="stats-panel">
+                    <h3>📈 통계</h3>
+                    <div id="stats">
+                        <p>총 <span id="totalCount">0</span>개의 시설</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 은평구 공공데이터 지도 | 데이터 출처: 서울특별시 은평구 공공데이터포털</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
