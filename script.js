@@ -197,7 +197,7 @@ async function loadData(dataType) {
                 csvFile = '서울특별시_은평구_무료급식소_20250203.csv';
                 break;
             case 'snow-box':
-                csvFile = '서울특별시_은평구_제설함_20250326.csv';
+                csvFile = '서울특별시_은평구_제설함_20250626.csv';
                 break;
             case 'dog-poop':
                 csvFile = '반려견 배변봉투함 위치.csv';
