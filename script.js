@@ -457,7 +457,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // CSV 파일 업로드 이벤트
     document.getElementById('uploadBtn').addEventListener('click', () => {
-        document.getElementById('csvUpload').click();
+        const password = prompt('CSV 업로드를 위한 비밀번호를 입력하세요:');
+        if (password === 'dmsvud123') {
+            document.getElementById('csvUpload').click();
+        } else if (password !== null) {
+            alert('비밀번호가 올바르지 않습니다.');
+        }
     });
     
     document.getElementById('csvUpload').addEventListener('change', (e) => {
